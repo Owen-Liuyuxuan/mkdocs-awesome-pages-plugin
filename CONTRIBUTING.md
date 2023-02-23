@@ -11,19 +11,17 @@ Thank you for considering to contribute to this project. These guidelines will h
 ##### Prerequisites
 
 - [Python 3]
-- [virtualenv]
+- [poetry]
 
 ##### Steps
 
 1. Clone the (forked) repository
-1. Create a virtualenv with `virtualenv env`
-1. Activate virtualenv `source env/bin/activate` or `env/Scripts/activate` on Windows
-1. Run `pip install -r requirements.txt` in the project directory
+1. Install dependencies with `poetry install`
 
 #### Running Tests
 
 ```bash
-pytest
+poetry run pytest
 ```
 
 <br/>
@@ -40,12 +38,13 @@ The summary of a commit should be concise and worded in an imperative mood.
 
 #### Code Style
 
-Make sure your code follows [PEP-8](https://www.python.org/dev/peps/pep-0008/) and keeps things consistent with the rest of the code. 
+This project uses [Black][black] for code formatting. 
 
 #### Tests
 
 If it makes sense, writing tests for your PRs is always appreciated and will help get them merged.
 
 [Python 3]: https://www.python.org/
-[virtualenv]: https://virtualenv.pypa.io/
+[poetry]: https://python-poetry.org/
 [git-commit-message]: https://chris.beams.io/posts/git-commit/
+[black]: https://black.readthedocs.io/

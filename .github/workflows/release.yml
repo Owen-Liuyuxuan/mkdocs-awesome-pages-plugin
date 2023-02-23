@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version (format 1.2.3)
+        required: true
+
+jobs:
+  tag:
+    name: Tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create git tag
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/v${{ github.event.inputs.version }}",
+              sha: context.sha
+            })
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up python
+        uses: actions/setup-python@v2
+      - name: Install poetry
+        uses: snok/install-poetry@v1
+      - name: Build
+        run: poetry build
+      - name: Publish
+        run: poetry publish -u __token__ -p ${{ secrets.PYPI_API_TOKEN }}

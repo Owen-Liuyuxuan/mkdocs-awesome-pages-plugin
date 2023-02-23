@@ -1,12 +1,18 @@
 import warnings
 from pathlib import Path
+from natsort import natsort_keygen
 from typing import List, Optional, Union, Set
 
-from mkdocs.structure.nav import Navigation as MkDocsNavigation, Section, Link, \
-    _add_parent_links, _add_previous_and_next_links
+from mkdocs.structure.nav import (
+    Navigation as MkDocsNavigation,
+    Section,
+    Link,
+    _add_parent_links,
+    _add_previous_and_next_links,
+)
 from mkdocs.structure.pages import Page
 
-from .meta import Meta, MetaNavRestItem, RestItemList
+from .meta import Meta, MetaNavItem, MetaNavRestItem, RestItemList
 from .options import Options
 from .utils import dirname, basename, join_paths
 
@@ -24,22 +30,29 @@ class NavEntryNotFound(Warning):
 class TitleInRootHasNoEffect(Warning):
     def __init__(self, filename: str):
         super().__init__(
-            'Using the "title" attribute in the {filename} file of the doc root has no effect'
-            .format(filename=filename)
+            'Using the "title" attribute in the {filename} file of the doc root has no effect'.format(filename=filename)
         )
 
 
 class HideInRootHasNoEffect(Warning):
     def __init__(self, filename: str):
         super().__init__(
-            'Using the "hide" attribute in the {filename} file of the doc root has no effect'
-            .format(filename=filename)
+            'Using the "hide" attribute in the {filename} file of the doc root has no effect'.format(filename=filename)
         )
 
 
-class AwesomeNavigation:
+class VirtualSection(Section):
+    pass
 
-    def __init__(self, items: List[NavigationItem], options: Options, docs_dir: str, explicit_sections: Set[Section]):
+
+class AwesomeNavigation:
+    def __init__(
+        self,
+        items: List[NavigationItem],
+        options: Options,
+        docs_dir: str,
+        explicit_sections: Set[Section],
+    ):
         self.options = options
         self.Allpages = []
         self.maximum_file_homepage = int(float(options.maximum_file_homepage))
@@ -54,11 +67,7 @@ class AwesomeNavigation:
         if self.meta.root.hide is not None:
             warnings.warn(HideInRootHasNoEffect(self.options.filename))
 
-        self.items = self._process_children(
-            items,
-            self.options.collapse_single_pages,
-            self.meta.root
-        )
+        self.items = self._process_children(items, self.options.collapse_single_pages, self.meta.root)
 
     def _process_children(self, children: List[NavigationItem], collapse: bool, meta: Meta) -> List[NavigationItem]:
         self._order(children, meta)
@@ -67,7 +76,7 @@ class AwesomeNavigation:
         result = []
 
         for item in children:
-            if isinstance(item, Section):
+            if isinstance(item, Section) and not isinstance(item, VirtualSection):
                 item = self._process_section(item, collapse)
                 if item is None:
                     continue
@@ -76,11 +85,13 @@ class AwesomeNavigation:
         return result
 
     def _order(self, items: List[NavigationItem], meta: Meta):
-        if meta.order is not None:
-            items.sort(
-                key=lambda i: basename(self._get_item_path(i)),
-                reverse=meta.order == Meta.ORDER_DESC
-            )
+        order, sort_type = meta.order, meta.sort_type
+        if order is None and sort_type is None:
+            return
+        key = lambda i: basename(self._get_item_path(i))
+        if sort_type == Meta.SORT_NATURAL:
+            key = natsort_keygen(key)
+        items.sort(key=key, reverse=order == Meta.ORDER_DESC)
 
     def _nav(self, items: List[NavigationItem], meta: Meta) -> List[NavigationItem]:
         if meta.nav is None:
@@ -88,19 +99,25 @@ class AwesomeNavigation:
 
         items_by_basename = {basename(self._get_item_path(item)): item for item in items}
 
-        result = []
+        used_items = []
         rest_items = RestItemList()
 
-        for index, meta_item in enumerate(meta.nav):
-            if isinstance(meta_item, MetaNavRestItem):
-                rest_items.append(meta_item)
-                result.append(meta_item)
-            else:
-                if meta_item.value in items_by_basename:
+        def _make_nav_rec(meta_nav: List[MetaNavItem]) -> List[Union[NavigationItem, MetaNavRestItem]]:
+            result = []
+            for meta_item in meta_nav:
+                if isinstance(meta_item, MetaNavRestItem):
+                    rest_items.append(meta_item)
+                    result.append(meta_item)
+
+                elif isinstance(meta_item.value, list):
+                    result.append(VirtualSection(meta_item.title, children=_make_nav_rec(meta_item.value)))
+
+                elif meta_item.value in items_by_basename:
                     item = items_by_basename[meta_item.value]
                     if meta_item.title is not None:
                         item.title = meta_item.title
                     result.append(item)
+                    used_items.append(item)
 
                 elif meta_item.title is not None:
                     result.append(Link(meta_item.title, meta_item.value))
@@ -111,21 +128,30 @@ class AwesomeNavigation:
                         raise warning
                     else:
                         warnings.warn(warning)
+            return result
+
+        result = _make_nav_rec(meta.nav)
 
         if rest_items:
             rest = {rest_item: [] for rest_item in rest_items}
 
             for item in items:
-                if item not in result:
+                if item not in used_items:
                     path = basename(self._get_item_path(item))
                     for rest_item in rest_items:
                         if rest_item.matches(path):
                             rest[rest_item].append(item)
                             break
 
-            for index, item in enumerate(result):
-                if isinstance(item, MetaNavRestItem):
-                    result[index:index + 1] = rest[item]
+            def _expand_rest_rec(result: List[Union[NavigationItem, MetaNavRestItem]]):
+                for index, item in enumerate(result):
+                    if isinstance(item, MetaNavRestItem):
+                        result[index : index + 1] = rest[item]
+                    elif isinstance(item, Section):
+                        if item.children:
+                            _expand_rest_rec(item.children)
+
+            _expand_rest_rec(result)
 
         return result
 
@@ -219,8 +245,13 @@ class AwesomeNavigation:
 
 
 class NavigationMeta:
-
-    def __init__(self, items: List[NavigationItem], options: Options, docs_dir: str, explicit_sections: Set[Section]):
+    def __init__(
+        self,
+        items: List[NavigationItem],
+        options: Options,
+        docs_dir: str,
+        explicit_sections: Set[Section],
+    ):
         self.options = options
         self.sections = {}
         self.docs_dir = docs_dir
