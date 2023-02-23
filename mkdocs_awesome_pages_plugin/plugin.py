@@ -33,11 +33,17 @@ class AwesomePagesPlugin(BasePlugin):
     REST_PLACEHOLDER = "AWESOME_PAGES_REST"
 
     config_scheme = (
+<<<<<<< HEAD
         ('maximum_file_homepage', config_options.Type(int, default=100)),
         ('maximum_days_ahead', config_options.Type(int, default=30)),
         ('filename', config_options.Type(str, default=DEFAULT_META_FILENAME)),
         ('collapse_single_pages', config_options.Type(bool, default=False)),
         ('strict', config_options.Type(bool, default=True))
+=======
+        ("filename", config_options.Type(str, default=DEFAULT_META_FILENAME)),
+        ("collapse_single_pages", config_options.Type(bool, default=False)),
+        ("strict", config_options.Type(bool, default=True)),
+>>>>>>> 26d635255b569bc131ed60ac6cd01423b486025c
     )
 
     def __init__(self):

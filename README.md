@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # This is a repo forked from MkDocs Awesome Pages Plugin
 
 Update: 2023/02/23: we follow the official repo to support pyproject.toml instead of setup.py.
@@ -19,6 +20,9 @@ plugins:
 ```
 
 # MkDocs Awesome Pages Plugin [![Build Status][travis-status]][travis-link]
+=======
+# MkDocs Awesome Pages Plugin [![Tests Status][status-tests-badge]][status-tests-link]
+>>>>>>> 26d635255b569bc131ed60ac6cd01423b486025c
 
 *An MkDocs plugin that simplifies configuring page titles and their order*
 
