@@ -43,7 +43,13 @@ class TestMeta(NavigationTestCase):
 
     def setUp(self):
         super(TestMeta, self).setUp()
-        self.options = Options(filename=".pages", collapse_single_pages=False, strict=True)
+        self.options = Options(
+            filename=".pages",
+            collapse_single_pages=False,
+            strict=True,
+            maximum_file_homepage=100,
+            maximum_days_ahead=30,
+        )
 
     def test_empty(self):
         meta = NavigationMeta([], self.options, docs_dir="", explicit_sections=set())
@@ -103,7 +109,13 @@ class TestMeta(NavigationTestCase):
         section = self.section("Section", [self.page("Page", "section/page.md")])
         meta = NavigationMeta(
             [section],
-            Options(filename=".index", collapse_single_pages=False, strict=True),
+            Options(
+                filename=".index",
+                collapse_single_pages=False,
+                strict=True,
+                maximum_file_homepage=100,
+                maximum_days_ahead=30,
+            ),
             docs_dir="",
             explicit_sections=set(),
         )
