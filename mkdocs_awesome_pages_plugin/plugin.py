@@ -37,7 +37,10 @@ class AwesomePagesPlugin(BasePlugin):
         ('maximum_days_ahead', config_options.Type(int, default=30)),
         ('filename', config_options.Type(str, default=DEFAULT_META_FILENAME)),
         ('collapse_single_pages', config_options.Type(bool, default=False)),
-        ('strict', config_options.Type(bool, default=True))
+        ('strict', config_options.Type(bool, default=True)),
+        ('ai_report_path_prefix', config_options.Type(str, default="")),
+        ('ai_report_recent_limit', config_options.Type(int, default=0)),
+        ('ai_report_pin_to_top', config_options.Type(bool, default=False)),
     )
 
     def __init__(self):
