@@ -55,7 +55,7 @@ class NavigationTestCase(TestCase):
         return section
 
     def createAwesomeNavigation(
-        self, items: List[NavigationItem], *, collapse_single_pages: bool = False, strict: bool = True
+        self, items: List[NavigationItem], *, collapse_single_pages: bool = False, strict: bool = True, **options_overrides
     ) -> AwesomeNavigation:
 
         children = []
@@ -69,13 +69,17 @@ class NavigationTestCase(TestCase):
         if meta is not None:
             self.meta_mock.root = meta
 
+        default_options = dict(
+            filename=".pages",
+            collapse_single_pages=collapse_single_pages,
+            strict=strict,
+            maximum_file_homepage=100,
+            maximum_days_ahead=30,
+        )
+        default_options.update(options_overrides)
         return AwesomeNavigation(
             children,
-            Options(
-                filename=".pages",
-                collapse_single_pages=collapse_single_pages,
-                strict=strict,
-            ),
+            Options(**default_options),
             docs_dir="",
             explicit_sections=set(),
         )
@@ -135,3 +139,14 @@ class NavigationTestCase(TestCase):
         self.addCleanup(patcher.stop)
         m = patcher.start()
         m.return_value = self.meta_mock = NavigationMetaMock()
+        # Mock _get_meta to avoid reading real files from disk (tests use in-memory pages)
+        def _noop_get_meta(page):
+            if not hasattr(page, "meta") or page.meta is None:
+                page.meta = {}
+
+        meta_patcher = mock.patch(
+            "mkdocs_awesome_pages_plugin.navigation.AwesomeNavigation._get_meta",
+            side_effect=_noop_get_meta,
+        )
+        self.addCleanup(meta_patcher.stop)
+        meta_patcher.start()
